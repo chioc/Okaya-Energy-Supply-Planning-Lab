@@ -81,10 +81,15 @@ function savePlan(record){
  if(initialPlan){if(ids.some(k=>!Number.isInteger(Number(initialPlan[k]))||Number(initialPlan[k])<0||Number(initialPlan[k])>100)||ids.reduce((a,k)=>a+Number(initialPlan[k]),0)!==100)throw new Error('初案の割合を確認してください。');}
  const more=['changeReason','disasterCountermeasure','outageImpact'].map(k=>plain_(record[k],1800));
  const row=[new Date(),classCode,studentCode,record.stage,JSON.stringify(plan),...texts,data.demandLabel,total,initialPlan?JSON.stringify(initialPlan):'',...more];
- upgradeRecords_(SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET.RECORDS));
  const lock=LockService.getScriptLock();lock.waitLock(10000);
- try{SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET.RECORDS).appendRow(row);}
- finally{lock.releaseLock();}
+ try{
+  const sheet=SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET.RECORDS);
+  upgradeRecords_(sheet);
+  const headers=sheet.getRange(1,1,1,sheet.getLastColumn()).getValues()[0].map(String);
+  const valuesByField=Object.fromEntries(FIELDS.map((field,i)=>[field,row[i]]));
+  sheet.appendRow(headers.map(field=>Object.prototype.hasOwnProperty.call(valuesByField,field)?valuesByField[field]:''));
+ }
+finally{lock.releaseLock();}
  return {ok:true,message:'計画を記録しました。',stage:record.stage};
 }
 function getConfig_(){const rows=SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET.CONFIG).getDataRange().getValues();return Object.fromEntries(rows.slice(1).map(r=>[String(r[0]),r[1]]));}
